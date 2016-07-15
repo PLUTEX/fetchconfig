@@ -116,7 +116,7 @@ sub chat_login {
 	return undef;
     }
 
-    ($prematch, $match) = $t->waitfor(Match => '/(\S+) > $/');
+    ($prematch, $match) = $t->waitfor(Match => '/([a-zA-Z0-9@\[\]\.\- ]*) > $/');
     if (!defined($prematch)) {
 	$self->log_error("could not find command prompt");
 	return undef;
@@ -289,6 +289,16 @@ sub do_fetch {
     $self->log_debug("disconnected");
 
     $self->dump_config($dev_id, $dev_opt_tab, \@config);
+}
+
+sub escape_brackets {
+    my ($str) = @_;
+
+    $str =~ s/\@/\\\@/g;
+    $str =~ s/\[/\\\[/g;
+    $str =~ s/\]/\\\]/g;
+
+    $str;
 }
 
 1;
