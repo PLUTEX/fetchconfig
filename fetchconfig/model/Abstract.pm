@@ -169,67 +169,65 @@ sub get_timestr {
     $year += 1900;
     ++$mon;
     my $tz_off = strftime '%z', @local_ts_list; 
-    
+
     # Solaris strftime does not support %z for tz offset (as in -0200),
     # so we resort to %Z for tz name (as in -BRST)
     if ($tz_off =~ /z/) {
         $tz_off = strftime '-%Z', @local_ts_list;
     }
-    
+
     ($year, $mon, $mday, $hour, $min, $sec, $tz_off);
 }
 
 sub dump_config {
-    my ($self, $dev_id, $dev_opt_tab, $conf_ref) = @_;
+	my ($self, $dev_id, $dev_opt_tab, $conf_ref) = @_;
 
-    my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
+	my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
 
-    my ($year, $mon, $day, $hour, $min, $sec, $tz_off) = get_timestr;
+	my ($year, $mon, $day, $hour, $min, $sec, $tz_off) = get_timestr;
 
-    my $dir_path = sprintf("$dev_repository/%04d%02d/%04d%02d%02d/$dev_id",
-			   $year, $mon, $year, $mon, $day);
+	my $dir_path = $dev_repository . '/' . $dev_id;
 
-    if (! -d $dir_path) {
-	my $mk;
-	if ($^O eq 'MSWin32') {
-	    my $path = $dir_path;
-	    $path =~ tr/\//\\/;
-	    $mk = "mkdir $path";
+	if (! -d $dir_path) {
+		my $mk;
+		if ($^O eq 'MSWin32') {
+			my $path = $dir_path;
+			$path =~ tr/\//\\/;
+			$mk = "mkdir $path";
+		}
+		else {
+			$mk = "mkdir -p $dir_path";
+		}
+
+		my $ret = system $mk;
+		if ($ret) {
+			$self->log_error("could not create dir: $mk: ret=$ret: $!");
+			return undef;
+		}
 	}
-	else {
-	    $mk = "mkdir -p $dir_path";
+
+	my $dev_timezone = $self->dev_option($dev_opt_tab, "timezone");
+	if (defined($dev_timezone)) {
+		if ($dev_timezone =~ /hide/i) {
+			$tz_off = '';
+		}
 	}
 
-	my $ret = system $mk;
-	if ($ret) {
-	    $self->log_error("could not create dir: $mk: ret=$ret: $!");
-	    return undef;
+	my $file = ${dev_id} . ".run";
+
+	my $dev_suffix = $self->dev_option($dev_opt_tab, "filename_append_suffix");
+	if (defined($dev_suffix)) {
+		$file .= $dev_suffix;
 	}
-    }
 
-    my $dev_timezone = $self->dev_option($dev_opt_tab, "timezone");
-    if (defined($dev_timezone)) {
-	if ($dev_timezone =~ /hide/i) {
-		$tz_off = '';
+	my $file_path = "$dir_path/$file";
+
+	local *OUT;
+
+	if (!open(OUT, ">$file_path")) {
+		$self->log_error("could not write dump file: $file_path: $!");
+		return undef;
 	}
-    }
-
-    my $file = sprintf("${dev_id}.run.%04d%02d%02d.%02d%02d%02d$tz_off",
-		       $year, $mon, $day, $hour, $min, $sec);
-
-    my $dev_suffix = $self->dev_option($dev_opt_tab, "filename_append_suffix");
-    if (defined($dev_suffix)) {
-	$file .= $dev_suffix;
-    }
-
-    my $file_path = "$dir_path/$file";
-
-    local *OUT;
-
-    if (!open(OUT, ">$file_path")) {
-	$self->log_error("could not write dump file: $file_path: $!");
-	return undef;
-    }
 
     {
 	$, = "\n";
