@@ -59,7 +59,7 @@ sub chat_login {
     my ($self, $t, $dev_id, $dev_host, $dev_opt_tab) = @_;
     my $ok;
 
-    my $login_prompt = '/(Username:|Password:) $/';
+    my $login_prompt = '/(User Name:|Username: |Password: |Password:)$/';
 
     # chat_banner is used to allow temporary modification
     # of timeout throught the 'banner_timeout' option
@@ -72,7 +72,7 @@ sub chat_login {
 
     $self->log_debug("found login prompt: [$match]");
 
-    if ($match =~ /^Username/) {
+    if ($match =~ /^User\s*(n|N)ame/) {
 	my $dev_user = $self->dev_option($dev_opt_tab, "user");
 	if (!defined($dev_user)) {
 	    $self->log_error("login username needed but not provided");
@@ -85,7 +85,7 @@ sub chat_login {
 	    return undef;
 	}
 
-	($prematch, $match) = $t->waitfor(Match => '/Password: $/');
+	($prematch, $match) = $t->waitfor(Match => '/Password:\s*$/');
 	if (!defined($prematch)) {
 	    $self->log_error("could not find password prompt");
 	    return undef;
