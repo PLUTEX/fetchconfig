@@ -49,191 +49,193 @@ my %model_table;
 my %dev_id_table;
 
 sub parse {
-    my ($class, $file, $num, $line) = @_;
+  my ($class, $file, $num, $line) = @_;
 
-    if (ref $class) { die "class method called as object method"; }
-    unless (@_ == 4) { die "usage: $class->parse(\$logger, \$line_num, \$line)"; }
+  if (ref $class) { die "class method called as object method"; }
+  unless (@_ == 4) { die "usage: $class->parse(\$logger, \$line_num, \$line)"; }
 
-    #$logger->debug("Detector->parse: $line");
+#  $logger->debug("Detector->parse: $line");
 
-    if ($line =~ /^\s*default:/) {
-	#
-       ## global        model           options
-        # default:       cisco-ios       user=backup,pass=san,enable=san
-	#
-	if ($line !~ /^\s*(\S+)\s+(\S+)\s+(\S.*)$/) {
-	    $logger->error("unrecognized default at file=$file line=$num: $line");
-	    return;
-	}
-
-	my @row = ($1, $2, $3);
-	my $model_label = shift @row;
-
-	$model_label = $row[0];
-	my $mod = $model_table{$model_label};
-	if (ref $mod) {
-	    shift @row;
-	    $mod->default_options($file, $num, $line, @row);
-	    return;
-	}
-
-	$logger->error("unknown model '$model_label' at file=$file line=$num: $line");
-
-	return;
+  if ($line =~ /^\s*default:/) {
+    #
+    # global        model           options
+    # default:       cisco-ios       user=backup,pass=san,enable=san
+    #
+    if ($line !~ /^\s*(\S+)\s+(\S+)\s+(\S.*)$/) {
+      $logger->error("unrecognized default at file=$file line=$num: $line");
+      return;
     }
 
-    #
-    ## model         dev-unique-id   hostname        device-specific-options
-    #cisco-ios       spo2            10.0.0.1 user=backup,pass=san,enable=fran
-    #
-
-    if ($line !~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*(.*)$/) {
-	$logger->error("unrecognized device at file=$file line=$num: $line");
-	return;
-    }
-
-    my @row = ($1, $2, $3, $4);
+    my @row = ($1, $2, $3);
     my $model_label = shift @row;
 
+    $model_label = $row[0];
     my $mod = $model_table{$model_label};
-    if (! ref $mod) {
-	$logger->error("unknown model '$model_label' at file=$file line=$num: $line");
-	return;
+    if (ref $mod) {
+      shift @row;
+      $mod->default_options($file, $num, $line, @row);
+      return;
     }
 
-    my $dev_id = shift @row;
+    $logger->error("unknown model '$model_label' at file=$file line=$num: $line");
 
-    my $dev_id_linenum = $dev_id_table{$dev_id};
-    if (defined($dev_id_linenum)) {
-	$logger->error("duplicated dev_id=$dev_id at file=$file line=$num: $line (previous at line $dev_id_linenum)");
-	return;
-    }
+    return;
+  }
 
-    $dev_id_table{$dev_id} = $num;
+  #
+  ## model         dev-unique-id   hostname        device-specific-options
+  #cisco-ios       spo2            10.0.0.1 user=backup,pass=san,enable=fran
+  #
 
-    my $dev_host = shift @row;
+  if ($line !~ /^\s*(\S+)\s+(\S+)\s+(\S+)\s*(.*)$/) {
+    $logger->error("unrecognized device at file=$file line=$num: $line");
+    return;
+  }
 
-    my $dev_opt_tab = {};
+  my @row = ($1, $2, $3, $4);
+  my $model_label = shift @row;
 
-    $mod->parse_options("dev=$dev_id",
-			$file, $num, $line,
-			$dev_opt_tab,
-			@row);
+  my $mod = $model_table{$model_label};
+  if (! ref $mod) {
+    $logger->error("unknown model '$model_label' at file=$file line=$num: $line");
+    return;
+  }
 
-    my ($latest_dir, $latest_file);
+  my $dev_id = shift @row;
 
-    #
-    # "changes_only" is true: configuration is saved only when changed
-    # "changes_only" is false: configuration is always saved
-    #
-    my $dev_changes_only = $mod->dev_option($dev_opt_tab, "changes_only");
+  my $dev_id_linenum = $dev_id_table{$dev_id};
+  if (defined($dev_id_linenum)) {
+    $logger->error("duplicated dev_id=$dev_id at file=$file line=$num: $line (previous at line $dev_id_linenum)");
+    return;
+  }
 
-    my $dev_run = $mod->dev_option($dev_opt_tab, "on_fetch_run");
-    my $dev_cat = $mod->dev_option($dev_opt_tab, "on_fetch_cat");
+  $dev_id_table{$dev_id} = $num;
 
-    #
-    # Do we need to locate the latest backup?
-    # - changes_only means we need to compare in order to detect change
-    # - on_fetch_run means we need to pass it to the external program
-    # - on_fetch_cat means we need to copy it to stdout
-    #
-    if ($dev_changes_only || $dev_run || $dev_cat) {
-	($latest_dir, $latest_file) = $mod->find_latest($dev_id, $dev_opt_tab);
-    }
+  my $dev_host = shift @row;
 
-    my $fetch_ts_start = time;
-    $logger->info("dev=$dev_id host=$dev_host: retrieving config at " . scalar(localtime($fetch_ts_start)));
+  my $dev_opt_tab = {};
 
-    my ($config_dir, $config_file) = $mod->fetch($file, $num, $line, $dev_id, $dev_host, $dev_opt_tab);
+  $mod->parse_options("dev=$dev_id",
+                      $file, $num, $line,
+                      $dev_opt_tab,
+                      @row);
 
-    my $fetch_elap = time - $fetch_ts_start;
-    $logger->info("dev=$dev_id host=$dev_host: config retrieval took $fetch_elap secs");
+  my ($latest_dir, $latest_file);
 
-    return unless defined($config_dir);
+  #
+  # "changes_only" is true: configuration is saved only when changed
+  # "changes_only" is false: configuration is always saved
+  #
+  my $dev_changes_only = $mod->dev_option($dev_opt_tab, "changes_only");
 
-    my $cfg_equal = 0; # false
+  my $dev_run = $mod->dev_option($dev_opt_tab, "on_fetch_run");
+  my $dev_cat = $mod->dev_option($dev_opt_tab, "on_fetch_cat");
+
+  #
+  # Do we need to locate the latest backup?
+  # - changes_only means we need to compare in order to detect change
+  # - on_fetch_run means we need to pass it to the external program
+  # - on_fetch_cat means we need to copy it to stdout
+  #
+  if ($dev_changes_only || $dev_run || $dev_cat) {
+    ($latest_dir, $latest_file) = $mod->find_latest($dev_id, $dev_opt_tab);
+  }
+
+  my $fetch_ts_start = time;
+  $logger->info("dev=$dev_id host=$dev_host: retrieving config at " . scalar(localtime($fetch_ts_start)));
+
+  my ($config_dir, $config_file) = $mod->fetch($file, $num, $line, $dev_id, $dev_host, $dev_opt_tab);
+
+  my $fetch_elap = time - $fetch_ts_start;
+  $logger->info("dev=$dev_id host=$dev_host: config retrieval took $fetch_elap secs");
+
+  return unless defined($config_dir);
+
+  my $cfg_equal = 0; # false
+
+  if (defined($latest_dir)) {
+    $cfg_equal = $mod->config_equal($latest_dir, $latest_file, $config_dir, $config_file);
+  }
+
+  my $curr = "$config_dir/$config_file";
+
+  if ($dev_run) {
+    $ENV{FETCHCONFIG_DEV_ID} = $dev_id;
+    $ENV{FETCHCONFIG_DEV_HOST} = $dev_host;
 
     if (defined($latest_dir)) {
-	$cfg_equal = $mod->config_equal($latest_dir, $latest_file, $config_dir, $config_file);
+      $ENV{FETCHCONFIG_PREV} = "$latest_dir/$latest_file" ;
+    }
+    else {
+      delete $ENV{FETCHCONFIG_PREV};
     }
 
-    my $curr = "$config_dir/$config_file";
+    $ENV{FETCHCONFIG_CURR} = $curr;
+    system($dev_run);
+    delete $ENV{FETCHCONFIG_DEV_ID};
+    delete $ENV{FETCHCONFIG_DEV_HOST};
+    delete $ENV{FETCHCONFIG_PREV};
+    delete $ENV{FETCHCONFIG_CURR};
+  }
 
-    if ($dev_run) {
-	$ENV{FETCHCONFIG_DEV_ID} = $dev_id;
-	$ENV{FETCHCONFIG_DEV_HOST} = $dev_host;
-	if (defined($latest_dir)) {
-	    $ENV{FETCHCONFIG_PREV} = "$latest_dir/$latest_file" ;
-	}
-	else {
-	    delete $ENV{FETCHCONFIG_PREV};
-	}
-	$ENV{FETCHCONFIG_CURR} = $curr;
-	system($dev_run);
-	delete $ENV{FETCHCONFIG_DEV_ID};
-	delete $ENV{FETCHCONFIG_DEV_HOST};
-	delete $ENV{FETCHCONFIG_PREV};
-	delete $ENV{FETCHCONFIG_CURR};
+  if ($dev_cat) {
+    local *IN;
+
+    if (!open(IN, "<$curr")) {
+      $logger->error("could not read current config: $curr: $!");
+      return;
     }
 
-    if ($dev_cat) {
-	local *IN;
-    
-	if (!open(IN, "<$curr")) {
-	    $logger->error("could not read current config: $curr: $!");
-	    return;
-	}
+    my @cfg = <IN>;
+    chomp @cfg;
 
-	my @cfg = <IN>;
-	chomp @cfg;
+    print STDOUT @cfg;
 
-	print STDOUT @cfg;
+    close IN;
+  }
 
-	close IN;
-    }
+  if ($dev_changes_only && $cfg_equal) {
+    $logger->debug("dev=$dev_id host=$dev_host: discarding config unchanged since last run");
+    $mod->config_discard($config_dir, $config_file);
+  }
 
-    if ($dev_changes_only && $cfg_equal) {
-	$logger->debug("dev=$dev_id host=$dev_host: discarding config unchanged since last run");
-	$mod->config_discard($config_dir, $config_file);
-    }
-
-    $mod->purge_ancient($dev_id, $dev_opt_tab);
+  $mod->purge_ancient($dev_id, $dev_opt_tab);
 }
 
 sub register {
-    my ($class, $mod) = @_;
+  my ($class, $mod) = @_;
 
-    $logger->debug("registering model: " . $mod->label);
+  $logger->debug("registering model: " . $mod->label);
 
-    $model_table{$mod->label} = $mod;
+  $model_table{$mod->label} = $mod;
 }
 
 sub init {
-    my ($class, $log) = @_;
+  my ($class, $log) = @_;
 
-    $logger = $log;
+  $logger = $log;
 
-    $class->register(fetchconfig::model::CiscoIOS->new($log));
-    $class->register(fetchconfig::model::CiscoSG300->new($log));
-    $class->register(fetchconfig::model::CiscoCAT->new($log));
-    $class->register(fetchconfig::model::CiscoASA->new($log));
-    $class->register(fetchconfig::model::FortiGate->new($log));
-    $class->register(fetchconfig::model::ProCurve->new($log));
-    $class->register(fetchconfig::model::Parks->new($log));
-    $class->register(fetchconfig::model::Riverstone->new($log));
-    $class->register(fetchconfig::model::Dell->new($log));
-    $class->register(fetchconfig::model::Terayon->new($log));
-    $class->register(fetchconfig::model::DmSwitch->new($log));
-    $class->register(fetchconfig::model::3ComMSR->new($log));
-    $class->register(fetchconfig::model::MikroTik->new($log));
-    $class->register(fetchconfig::model::CiscoPIX->new($log));
-    $class->register(fetchconfig::model::TellabsMSR->new($log));
-    $class->register(fetchconfig::model::JunOS->new($log));
-    $class->register(fetchconfig::model::Acme->new($log));
-    $class->register(fetchconfig::model::Mediant->new($log));
-    $class->register(fetchconfig::model::CiscoIOSXR->new($log));
-    $class->register(fetchconfig::model::NECUnivergeIX->new($log));
-    $class->register(fetchconfig::model::Coriant8600->new($log));
+  $class->register(fetchconfig::model::CiscoIOS->new($log));
+  $class->register(fetchconfig::model::CiscoSG300->new($log));
+  $class->register(fetchconfig::model::CiscoCAT->new($log));
+  $class->register(fetchconfig::model::CiscoASA->new($log));
+  $class->register(fetchconfig::model::FortiGate->new($log));
+  $class->register(fetchconfig::model::ProCurve->new($log));
+  $class->register(fetchconfig::model::Parks->new($log));
+  $class->register(fetchconfig::model::Riverstone->new($log));
+  $class->register(fetchconfig::model::Dell->new($log));
+  $class->register(fetchconfig::model::Terayon->new($log));
+  $class->register(fetchconfig::model::DmSwitch->new($log));
+  $class->register(fetchconfig::model::3ComMSR->new($log));
+  $class->register(fetchconfig::model::MikroTik->new($log));
+  $class->register(fetchconfig::model::CiscoPIX->new($log));
+  $class->register(fetchconfig::model::TellabsMSR->new($log));
+  $class->register(fetchconfig::model::JunOS->new($log));
+  $class->register(fetchconfig::model::Acme->new($log));
+  $class->register(fetchconfig::model::Mediant->new($log));
+  $class->register(fetchconfig::model::CiscoIOSXR->new($log));
+  $class->register(fetchconfig::model::NECUnivergeIX->new($log));
+  $class->register(fetchconfig::model::Coriant8600->new($log));
 }
 
 1;

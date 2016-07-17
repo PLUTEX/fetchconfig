@@ -26,18 +26,18 @@ use fetchconfig::Constants;
 use fetchconfig::model::Detector;
 
 sub basename {
-    my ($path) = @_;
+  my ($path) = @_;
 
-    my @list;
+  my @list;
 
-    if ($^O eq 'MSWin32') {
-	@list = split /\\/, $path;
-    }
-    else {
-	@list = split /\//, $path;
-    }
+  if ($^O eq 'MSWin32') {
+    @list = split /\\/, $path;
+  }
+  else {
+    @list = split /\//, $path;
+  }
 
-    pop @list;
+  pop @list;
 }
 
 my $me = basename($0);
@@ -50,38 +50,38 @@ my @device_file_list;
 my @line_list;
 
 foreach my $opt (@ARGV) {
-    if ($opt eq '-v') {
-	exit; # only show version
-    }
-    if ($opt =~ /^-devices=(.+)$/) {
-	push @device_file_list, $1;
-	next;
-    }
-    if ($opt =~ /^-line=(.+)$/) {
-	push @line_list, $1;
-	next;
-    }
-    $log->error("unexpected argument: $opt");
-    &usage;
-    die;
+  if ($opt eq '-v') {
+    exit; # only show version
+  }
+  if ($opt =~ /^-devices=(.+)$/) {
+    push @device_file_list, $1;
+    next;
+  }
+  if ($opt =~ /^-line=(.+)$/) {
+    push @line_list, $1;
+    next;
+  }
+  $log->error("unexpected argument: $opt");
+  &usage;
+  die;
 }
 
 if ((@device_file_list < 1) && (@line_list < 1)){
-    $log->error("at least one -devices=filename or one -line=string is required");
-    &usage;
-    die;
+  $log->error("at least one -devices=filename or one -line=string is required");
+  &usage;
+  die;
 }
 
 fetchconfig::model::Detector->init($log);
 
 foreach my $dev_file (@device_file_list) {
-    &load_device_list($dev_file);
+  &load_device_list($dev_file);
 }
 
 my $line_num = 0;
 foreach my $line (@line_list) {
-    ++$line_num;
-    &load_line($line, $line_num);
+  ++$line_num;
+  &load_line($line, $line_num);
 }
 
 $log->info("done");
@@ -89,44 +89,44 @@ $log->info("done");
 exit;
 
 sub usage {
-    warn "usage: $me [-v] [-devices=file] [-line=string]\n";
+  warn "usage: $me [-v] [-devices=file] [-line=string]\n";
 }
 
 sub load_device_list {
-    my ($filename) = @_;
-    
-    local *IN;
-    
-    if (!open(IN, "<$filename")) {
-	$log->error("could not read device list: $filename: $!");
-	return;
-    }
-    
-    $log->debug("loading device list: $filename");
+  my ($filename) = @_;
 
-    my $line_num = 0;
-    
-    while (<IN>) {
-	chomp;
+  local *IN;
 
-	++$line_num;
+  if (!open(IN, "<$filename")) {
+    $log->error("could not read device list: $filename: $!");
+    return;
+  }
 
-	#$log->debug("[$line_num] $_");
+  $log->debug("loading device list: $filename");
 
-	next if (/^\s*(#|$)/);
+  my $line_num = 0;
 
-        fetchconfig::model::Detector->parse($filename, $line_num, $_);
-    }
-		 
-    close IN;
+  while (<IN>) {
+    chomp;
+
+    ++$line_num;
+
+#    $log->debug("[$line_num] $_");
+
+    next if (/^\s*(#|$)/);
+
+    fetchconfig::model::Detector->parse($filename, $line_num, $_);
+  }
+
+  close IN;
 }
 
 sub load_line {
-    my ($line, $num) = @_;
-    
-    $log->debug("loading line: line=$num [$line]");
+  my ($line, $num) = @_;
 
-    return if ($line =~ /^\s*(#|$)/);
+  $log->debug("loading line: line=$num [$line]");
 
-    fetchconfig::model::Detector->parse('<cmdline>', $num, $line);
+  return if ($line =~ /^\s*(#|$)/);
+
+  fetchconfig::model::Detector->parse('<cmdline>', $num, $line);
 }

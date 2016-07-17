@@ -30,63 +30,63 @@ use POSIX qw(strftime);
 #
 
 sub label {
-    die "model::Abstract->label: SPECIALIZE ME";
+  die "model::Abstract->label: SPECIALIZE ME";
 }
 
 sub new {
-    my ($class, $log) = @_;
+  my ($class, $log) = @_;
 
-    my $self = {
-	log             => $log,
-	default_options => {}
-    };
+  my $self = {
+    log             => $log,
+    default_options => {}
+  };
 
-    bless $self, $class;
+  bless $self, $class;
 }
 
 sub fetch {
-    my ($self, $file, $line_num, $line, $dev_id, $dev_host, $dev_opt_tab) = @_;
+  my ($self, $file, $line_num, $line, $dev_id, $dev_host, $dev_opt_tab) = @_;
 
-    die "model::Abstract->fetch: SPECIALIZE ME";
+  die "model::Abstract->fetch: SPECIALIZE ME";
 }
 
 # chat_banner is used to allow temporary modification
 # of timeout throught the 'banner_timeout' option
 #
 sub chat_banner {
-    my ($self, $t, $dev_opt_tab, $login_pattern) = @_;
+  my ($self, $t, $dev_opt_tab, $login_pattern) = @_;
 
-    my $save_timeout;
-    my $banner_timeout = $self->dev_option($dev_opt_tab, "banner_timeout");
+  my $save_timeout;
+  my $banner_timeout = $self->dev_option($dev_opt_tab, "banner_timeout");
 
-    if (defined($banner_timeout)) {
-        $save_timeout = $t->timeout;
-        $self->log_debug("temporarily forcing banner_timeout=$banner_timeout (from timeout=$save_timeout)");
-        $t->timeout($banner_timeout);
-    }
+  if (defined($banner_timeout)) {
+    $save_timeout = $t->timeout;
+    $self->log_debug("temporarily forcing banner_timeout=$banner_timeout (from timeout=$save_timeout)");
+    $t->timeout($banner_timeout);
+  }
 
-    my ($prematch, $match) = $t->waitfor(Match => $login_pattern);
+  my ($prematch, $match) = $t->waitfor(Match => $login_pattern);
 
-    if (defined($banner_timeout)) {
-        $self->log_debug("restoring timeout=$save_timeout");
-        $t->timeout($save_timeout);
-    }
+  if (defined($banner_timeout)) {
+    $self->log_debug("restoring timeout=$save_timeout");
+    $t->timeout($save_timeout);
+  }
 
-    ($prematch, $match);
+  ($prematch, $match);
 }
 
 sub chat_show_conf {
-    my ($self, $t, $show_cmd_default, $show_cmd_custom) = @_;
+  my ($self, $t, $show_cmd_default, $show_cmd_custom) = @_;
 
-    my $cmd = defined($show_cmd_custom) ? $show_cmd_custom : $show_cmd_default;
+  my $cmd = defined($show_cmd_custom) ? $show_cmd_custom : $show_cmd_default;
 
-    my $ok = $t->print($cmd);
-    if (!$ok) {
-	$self->log_error("could not send show config command: $cmd");
-	return 1;
-    }
+  my $ok = $t->print($cmd);
+  if (!$ok) {
+    $self->log_error("could not send show config command: $cmd");
+    return 1;
+  }
 
-    undef;
+  undef;
 }
 
 #
@@ -94,15 +94,15 @@ sub chat_show_conf {
 ##################################
 
 sub log_debug {
-    my ($self, $msg) = @_;
+  my ($self, $msg) = @_;
 
-    $self->{log}->debug($self->label . ": " . $msg);
+  $self->{log}->debug($self->label . ": " . $msg);
 }
 
 sub log_error {
-    my ($self, $msg) = @_;
+  my ($self, $msg) = @_;
 
-    $self->{log}->error($self->label . ": " . $msg);
+  $self->{log}->error($self->label . ": " . $msg);
 }
 
 # remove heading and trailing blanks
@@ -110,350 +110,350 @@ sub log_error {
 # example: " a b c  " => "a b c"
 #
 sub opt_trim {
-    my ($opt) = @_;
-    if ($opt =~ /^\s*(\S|\S.*\S)\s*$/) {
-	return $1;
-    }
-    $opt;
+  my ($opt) = @_;
+  if ($opt =~ /^\s*(\S|\S.*\S)\s*$/) {
+    return $1;
+  }
+  $opt;
 }
 
 sub parse_options {
-    my ($self, $label, $file, $line_num, $line, $opt_tab_ref, @options) = @_;
+  my ($self, $label, $file, $line_num, $line, $opt_tab_ref, @options) = @_;
 
-    foreach (@options) {
-	foreach (split /,/) {
-	    if (/^([^=]+)=(.*)$/) {
-		my $opt = opt_trim($1);
-		my $val = opt_trim($2);
-		$opt_tab_ref->{$opt} = $val;
-		next;
-	    }
-	    $self->log_error("bad $label option '$_' at file=$file line=$line_num: $line");
-	}
+  foreach (@options) {
+    foreach (split /,/) {
+      if (/^([^=]+)=(.*)$/) {
+        my $opt = opt_trim($1);
+        my $val = opt_trim($2);
+        $opt_tab_ref->{$opt} = $val;
+        next;
+      }
+      $self->log_error("bad $label option '$_' at file=$file line=$line_num: $line");
     }
+  }
 }
 
 sub dump_options {
-    my ($self, $label, $opt_tab_ref) = @_;
+  my ($self, $label, $opt_tab_ref) = @_;
 
-    while (my ($name, $value) = each %$opt_tab_ref) {
-	$self->log_debug("$label option: $name=$value");
-    }
+  while (my ($name, $value) = each %$opt_tab_ref) {
+    $self->log_debug("$label option: $name=$value");
+  }
 }
 
 sub default_options {
-    my ($self, $file, $line_num, $line, @model_default_options) = @_;
+  my ($self, $file, $line_num, $line, @model_default_options) = @_;
 
-    $self->parse_options('default',
-			 $file, $line_num, $line,
-			 $self->{default_options},
-			 @model_default_options);
+  $self->parse_options('default',
+                       $file, $line_num, $line,
+                       $self->{default_options},
+                       @model_default_options);
 
-    #$self->dump_options('default', $self->{default_options});
+#  $self->dump_options('default', $self->{default_options});
 }
 
 sub dev_option {
-    my ($self, $dev_opt_tab, $opt_name) = @_;
+  my ($self, $dev_opt_tab, $opt_name) = @_;
 
-    my $value = $dev_opt_tab->{$opt_name};
+  my $value = $dev_opt_tab->{$opt_name};
 
-    return $value if defined($value);
+  return $value if defined($value);
 
-    $self->{default_options}->{$opt_name};
+  $self->{default_options}->{$opt_name};
 }
 
 sub get_timestr {
-    my $ts = time;
-    my @local_ts_list = localtime($ts);
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = @local_ts_list;
-    $year += 1900;
-    ++$mon;
-    my $tz_off = strftime '%z', @local_ts_list; 
+  my $ts = time;
+  my @local_ts_list = localtime($ts);
+  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = @local_ts_list;
+  $year += 1900;
+  ++$mon;
+  my $tz_off = strftime '%z', @local_ts_list; 
 
-    # Solaris strftime does not support %z for tz offset (as in -0200),
-    # so we resort to %Z for tz name (as in -BRST)
-    if ($tz_off =~ /z/) {
-        $tz_off = strftime '-%Z', @local_ts_list;
-    }
+  # Solaris strftime does not support %z for tz offset (as in -0200),
+  # so we resort to %Z for tz name (as in -BRST)
+  if ($tz_off =~ /z/) {
+      $tz_off = strftime '-%Z', @local_ts_list;
+  }
 
-    ($year, $mon, $mday, $hour, $min, $sec, $tz_off);
+  ($year, $mon, $mday, $hour, $min, $sec, $tz_off);
 }
 
 sub dump_config {
-	my ($self, $dev_id, $dev_opt_tab, $conf_ref) = @_;
+  my ($self, $dev_id, $dev_opt_tab, $conf_ref) = @_;
 
-	my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
+  my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
 
-	my ($year, $mon, $day, $hour, $min, $sec, $tz_off) = get_timestr;
+  my ($year, $mon, $day, $hour, $min, $sec, $tz_off) = get_timestr;
 
-	my $dir_path = $dev_repository . '/' . $dev_id;
+  my $dir_path = $dev_repository . '/' . $dev_id;
 
-	if (! -d $dir_path) {
-		my $mk;
-		if ($^O eq 'MSWin32') {
-			my $path = $dir_path;
-			$path =~ tr/\//\\/;
-			$mk = "mkdir $path";
-		}
-		else {
-			$mk = "mkdir -p $dir_path";
-		}
-
-		my $ret = system $mk;
-		if ($ret) {
-			$self->log_error("could not create dir: $mk: ret=$ret: $!");
-			return undef;
-		}
-	}
-
-	my $dev_timezone = $self->dev_option($dev_opt_tab, "timezone");
-	if (defined($dev_timezone)) {
-		if ($dev_timezone =~ /hide/i) {
-			$tz_off = '';
-		}
-	}
-
-	my $file = ${dev_id} . ".run";
-
-	my $dev_suffix = $self->dev_option($dev_opt_tab, "filename_append_suffix");
-	if (defined($dev_suffix)) {
-		$file .= $dev_suffix;
-	}
-
-	my $file_path = "$dir_path/$file";
-
-	local *OUT;
-
-	if (!open(OUT, ">$file_path")) {
-		$self->log_error("could not write dump file: $file_path: $!");
-		return undef;
-	}
-
-    {
-	$, = "\n";
-	print OUT @$conf_ref;
+  if (! -d $dir_path) {
+    my $mk;
+    if ($^O eq 'MSWin32') {
+      my $path = $dir_path;
+      $path =~ tr/\//\\/;
+      $mk = "mkdir $path";
+    }
+    else {
+      $mk = "mkdir -p $dir_path";
     }
 
-    if (!close(OUT)) {
-	$self->log_error("could not close dump file: $file_path: $!");
-	return undef;
+    my $ret = system $mk;
+    if ($ret) {
+      $self->log_error("could not create dir: $mk: ret=$ret: $!");
+      return undef;
     }
+  }
 
-    ($dir_path, $file);
+  my $dev_timezone = $self->dev_option($dev_opt_tab, "timezone");
+  if (defined($dev_timezone)) {
+    if ($dev_timezone =~ /hide/i) {
+      $tz_off = '';
+    }
+  }
+
+  my $file = ${dev_id} . ".run";
+
+  my $dev_suffix = $self->dev_option($dev_opt_tab, "filename_append_suffix");
+  if (defined($dev_suffix)) {
+    $file .= $dev_suffix;
+  }
+
+  my $file_path = "$dir_path/$file";
+
+  local *OUT;
+
+  if (!open(OUT, ">$file_path")) {
+    $self->log_error("could not write dump file: $file_path: $!");
+    return undef;
+  }
+
+  {
+    $, = "\n";
+    print OUT @$conf_ref;
+  }
+
+  if (!close(OUT)) {
+    $self->log_error("could not close dump file: $file_path: $!");
+    return undef;
+  }
+
+  ($dir_path, $file);
 }
 
 sub find_latest {
-    my ($self, $dev_id, $dev_opt_tab) = @_;
+  my ($self, $dev_id, $dev_opt_tab) = @_;
 
-    my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
+  my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
 
-    my %dir_tab;
+  my %dir_tab;
 
-    if ($self->scan_dir(\%dir_tab, $dev_id, $dev_repository)) {
-	$self->log_error("latest config not found - error scanning repository");
-	return undef;
-    }
+  if ($self->scan_dir(\%dir_tab, $dev_id, $dev_repository)) {
+    $self->log_error("latest config not found - error scanning repository");
+    return undef;
+  }
 
-    my @files = sort { $b cmp $a } keys %dir_tab;
+  my @files = sort { $b cmp $a } keys %dir_tab;
 
-    if (@files < 1) {
-	$self->log_error("there is no latest config");
-	return undef;
-    }
+  if (@files < 1) {
+    $self->log_error("there is no latest config");
+    return undef;
+  }
 
-    my $latest_file = $files[0];
-    my $latest_dir = $dir_tab{$latest_file};
+  my $latest_file = $files[0];
+  my $latest_dir = $dir_tab{$latest_file};
 
-    ($latest_dir, $latest_file);
+  ($latest_dir, $latest_file);
 }
 
 sub scan_dir {
-    my ($self, $dir_tab_ref, $dev_id, $dir_path) = @_;
+  my ($self, $dir_tab_ref, $dev_id, $dir_path) = @_;
 
-    my $error = 0;
+  my $error = 0;
 
-    local *DIR;
+  local *DIR;
 
-    if (!opendir(DIR, $dir_path)) {
-	$self->log_error("could not open dir: $dir_path: $!");
-	return 1;
+  if (!opendir(DIR, $dir_path)) {
+    $self->log_error("could not open dir: $dir_path: $!");
+    return 1;
+  }
+
+  foreach (readdir DIR) {
+    my $file = "$dir_path/$_";
+
+    if (-f $file) {
+      my $pattern = ${dev_id} . '\.run\.';
+      next unless ($_ =~ /^$pattern/);
+
+      if (exists($dir_tab_ref->{$_})) {
+        $self->log_error("ugh: duplicate backup file: $_");
+        return 1;
+      }
+      $dir_tab_ref->{$_} = $dir_path;
+
+      next;
     }
 
-    foreach (readdir DIR) {
-	my $file = "$dir_path/$_";
+    next if (/^\./);
 
-	if (-f $file) {
-	    my $pattern = ${dev_id} . '\.run\.';
-	    next unless ($_ =~ /^$pattern/);
-	
-	    if (exists($dir_tab_ref->{$_})) {
-		$self->log_error("ugh: duplicate backup file: $_");
-		return 1;
-	    }
-	    $dir_tab_ref->{$_} = $dir_path;
-	
-	    next;
-        }
-
-        next if (/^\./);
-
-	if ($self->scan_dir($dir_tab_ref, $dev_id, $file)) {
-	    $error = 1;
-	    last;
-	}
+    if ($self->scan_dir($dir_tab_ref, $dev_id, $file)) {
+      $error = 1;
+      last;
     }
+  }
 
-    if (!closedir(DIR)) {
-	$self->log_error("could not close dir: $dir_path: $!");
-	return 1;
-    }
+  if (!closedir(DIR)) {
+    $self->log_error("could not close dir: $dir_path: $!");
+    return 1;
+  }
 
-    $error;
+  $error;
 }
 
 sub config_equal {
-    my ($self, $prev_dir, $prev_file, $curr_dir, $curr_file) = @_;
+  my ($self, $prev_dir, $prev_file, $curr_dir, $curr_file) = @_;
 
-    my $prev_path = "$prev_dir/$prev_file";
-    my $curr_path = "$curr_dir/$curr_file";
+  my $prev_path = "$prev_dir/$prev_file";
+  my $curr_path = "$curr_dir/$curr_file";
 
-    my $result = compare($prev_path, $curr_path);
-    if ($result < 0) {
-	$self->log_error("failure comparing $prev_path to $curr_path");
-    }
+  my $result = compare($prev_path, $curr_path);
+  if ($result < 0) {
+    $self->log_error("failure comparing $prev_path to $curr_path");
+  }
 
-    # -1: error: return false, in order to keep the newer version
-    # 0: equal: return true, in order to allow discarding the newer version
-    # 1: distinct: return false, in order to keep the newer version
+  # -1: error: return false, in order to keep the newer version
+  # 0: equal: return true, in order to allow discarding the newer version
+  # 1: distinct: return false, in order to keep the newer version
 
-    !$result;
+  !$result;
 }
 
 sub prune_dir_tree {
-    my ($self, $depth, $dir) = @_;
+  my ($self, $depth, $dir) = @_;
 
-    #$self->log_debug("prunning depth=$depth: $dir");
+#  $self->log_debug("prunning depth=$depth: $dir");
 
-    return if ($depth < 1);
+  return if ($depth < 1);
 
-    if (rmdir $dir) {
-	my @labels = split /\//, $dir;
+  if (rmdir $dir) {
+    my @labels = split /\//, $dir;
 
-	pop @labels;
+    pop @labels;
 
-	my $parent = join '/', @labels;
+    my $parent = join '/', @labels;
 
-	$self->prune_dir_tree($depth - 1, $parent);
-	
-	return;
-    }
+    $self->prune_dir_tree($depth - 1, $parent);
 
-    #$self->log_debug("could not rmdir: $dir: $!");
+    return;
+  }
+
+#  $self->log_debug("could not rmdir: $dir: $!");
 }
 
 sub config_discard {
-    my ($self, $config_dir, $config_file) = @_;
+  my ($self, $config_dir, $config_file) = @_;
 
-    my $path = "$config_dir/$config_file";
+  my $path = "$config_dir/$config_file";
 
-    #$self->log_debug("discarding: $path");
+#  $self->log_debug("discarding: $path");
 
-    if (unlink($path) != 1) {
-	$self->log_error("could not discard config file: $path; $!");
-	return;
-    }
+  if (unlink($path) != 1) {
+    $self->log_error("could not discard config file: $path; $!");
+    return;
+  }
 
-    $self->prune_dir_tree(3, $config_dir);
+  $self->prune_dir_tree(3, $config_dir);
 }
 
 sub purge_ancient {
-    my ($self, $dev_id, $dev_opt_tab) = @_;
+  my ($self, $dev_id, $dev_opt_tab) = @_;
 
-    my $dev_keep = $self->dev_option($dev_opt_tab, "keep");
-    if (!defined($dev_keep)) {
-	$self->log_error("dev=$dev_id: unspecified maximum of config files to keep");
-	return;
-    }
+  my $dev_keep = $self->dev_option($dev_opt_tab, "keep");
+  if (!defined($dev_keep)) {
+    $self->log_error("dev=$dev_id: unspecified maximum of config files to keep");
+    return;
+  }
 
-    my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
+  my $dev_repository = $self->dev_option($dev_opt_tab, "repository");
 
-    my %dir_tab;
+  my %dir_tab;
 
-    if ($self->scan_dir(\%dir_tab, $dev_id, $dev_repository)) {
-	$self->log_error("dev=$dev_id: could not load full device config list - error scanning repository");
-	return;
-    }
+  if ($self->scan_dir(\%dir_tab, $dev_id, $dev_repository)) {
+    $self->log_error("dev=$dev_id: could not load full device config list - error scanning repository");
+    return;
+  }
 
-    my @files = keys %dir_tab;
+  my @files = keys %dir_tab;
 
-    my $expired = @files - $dev_keep;
+  my $expired = @files - $dev_keep;
 
-    $self->log_debug("dev=$dev_id: expire: existing=". scalar @files . " keep=$dev_keep should_expire=$expired");
+  $self->log_debug("dev=$dev_id: expire: existing=". scalar @files . " keep=$dev_keep should_expire=$expired");
 
-    return if ($expired < 1);
+  return if ($expired < 1);
 
-    my @sorted = sort @files;
+  my @sorted = sort @files;
 
-    for (my $i = 0; $i < $expired; ++$i) {
-	my $file = $sorted[$i];
-	my $dir = $dir_tab{$file};
+  for (my $i = 0; $i < $expired; ++$i) {
+    my $file = $sorted[$i];
+    my $dir = $dir_tab{$file};
 
-	$self->log_debug("dev=$dev_id: expiring: $dir/$file");
+    $self->log_debug("dev=$dev_id: expiring: $dir/$file");
 
-	$self->config_discard($dir, $file);
-    }
+    $self->config_discard($dir, $file);
+  }
 }
 
 sub escape_brackets {
-    my ($str) = @_;
+  my ($str) = @_;
 
-    $str =~ s/\@/\\\@/g;
-    $str =~ s/\[/\\\[/g;
-    $str =~ s/\]/\\\]/g;
+  $str =~ s/\@/\\\@/g;
+  $str =~ s/\[/\\\[/g;
+  $str =~ s/\]/\\\]/g;
 
-    $str;
+  $str;
 }
 
 sub expect_enable_prompt_paging_auto {
-    my ($self, $t, $prompt, $paging_prompt) = @_;
+  my ($self, $t, $prompt, $paging_prompt) = @_;
 
-    if (!defined($prompt)) {
-        $self->log_error("internal failure: undefined command prompt");
-        return undef;
+  if (!defined($prompt)) {
+    $self->log_error("internal failure: undefined command prompt");
+    return undef;
+  }
+
+  my $escaped_prompt = &escape_brackets($prompt);
+#  $self->log_debug("regexp='$prompt' escaped_brackets='$escaped_prompt'");
+  my $prompt_regexp = '/(' . $escaped_prompt . '#$)|(\Q' . $paging_prompt . '\E$)/';
+
+  my ($prematch, $match, $full_prematch);
+
+  for (;;) {
+    $self->log_debug("paging: searching: $prompt_regexp");
+    ($prematch, $match) = $t->waitfor(Match => $prompt_regexp);
+    if (!defined($prematch)) {
+      $self->log_error("could not match enable/paging prompt: $prompt_regexp");
+      return; # signals error with undef
     }
 
-    my $escaped_prompt = &escape_brackets($prompt);
-    #$self->log_debug("regexp='$prompt' escaped_brackets='$escaped_prompt'");
-    my $prompt_regexp = '/(' . $escaped_prompt . '#$)|(\Q' . $paging_prompt . '\E$)/';
+    $self->log_debug("paging: found: match=[$match]");
 
-    my ($prematch, $match, $full_prematch);
+    $full_prematch .= $prematch;
 
-    for (;;) {
-	$self->log_debug("paging: searching: $prompt_regexp");
-        ($prematch, $match) = $t->waitfor(Match => $prompt_regexp);
-        if (!defined($prematch)) {
-            $self->log_error("could not match enable/paging prompt: $prompt_regexp");
-            return; # signals error with undef
-        }
-
-	$self->log_debug("paging: found: match=[$match]");
-
-        $full_prematch .= $prematch;
-
-        if ($match ne $paging_prompt) {
-            $self->log_debug("paging: done: match=[$match] paging_prompt=[$paging_prompt]");
-            last;
-        }
-
-        # Do paging
-        my $ok = $t->put(' '); # SPACE
-        if (!$ok) {
-            $self->log_error("could not send paging SPACE command");
-            return; # signals error with undef
-        }
+    if ($match ne $paging_prompt) {
+      $self->log_debug("paging: done: match=[$match] paging_prompt=[$paging_prompt]");
+      last;
     }
 
-    ($full_prematch, $match);
+    # Do paging
+    my $ok = $t->put(' '); # SPACE
+    if (!$ok) {
+      $self->log_error("could not send paging SPACE command");
+      return; # signals error with undef
+    }
+  }
+
+  ($full_prematch, $match);
 }
 
 1;

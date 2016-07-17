@@ -26,7 +26,7 @@ use warnings;
 my $version = '0.25';
 
 sub version {
-    $version;
+  $version;
 }
 
 1;

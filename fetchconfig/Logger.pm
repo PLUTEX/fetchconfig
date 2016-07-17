@@ -24,52 +24,52 @@ use strict;
 use warnings;
 
 sub new {
-    my ($proto, $options) = @_;
-    my $class = ref($proto) || $proto;
+  my ($proto, $options) = @_;
+  my $class = ref($proto) || $proto;
 
-    # defaults
-    my $self = {
-	          prefix => '?'
-		};
+  # defaults
+  my $self = {
+    prefix => '?'
+  };
 
-    # user options
-    if (@_ > 1) {
-	foreach (keys %$options) {
-	    $self->{$_} = $options->{$_};
-	}
+  # user options
+  if (@_ > 1) {
+    foreach (keys %$options) {
+      $self->{$_} = $options->{$_};
     }
+  }
 
-    bless $self, $class;
+  bless $self, $class;
 }
 
 sub prefix {
-    my ($self, $prefix) = @_;
+  my ($self, $prefix) = @_;
 
-    my $old = $self->{prefix};
+  my $old = $self->{prefix};
 
-    if (defined($prefix)) {
-	$self->{prefix} = $prefix;
-    }
+  if (defined($prefix)) {
+    $self->{prefix} = $prefix;
+  }
 
-    $old;
+  $old;
 }
 
 sub info {
-    my ($self, $msg) = @_;
+  my ($self, $msg) = @_;
 
-    warn $self->{prefix}, ": info: ", $msg, "\n";
+  warn $self->{prefix}, ": info: ", $msg, "\n";
 }
 
 sub debug {
-    my ($self, $msg) = @_;
+  my ($self, $msg) = @_;
 
-    warn $self->{prefix}, ": debug: ", $msg, "\n";
+  warn $self->{prefix}, ": debug: ", $msg, "\n";
 }
 
 sub error {
-    my ($self, $msg) = @_;
+  my ($self, $msg) = @_;
 
-    warn $self->{prefix}, ": error: ", $msg, "\n";
+  warn $self->{prefix}, ": error: ", $msg, "\n";
 }
 
 1;
